@@ -375,28 +375,36 @@ function addHighlighting() {
 
   function splitTextNode(node) {
       let text = node.textContent;
-      let sentences = text.split(/(?<=[.,\n])\s+/);
+      let sentences = text.split(/(?<=[.,;])/);
 
       let chunks = [];
       let currentChunk = [];
 
       sentences.forEach(sentence => {
-          let words = sentence.split(/\s+/);
-          currentChunk = currentChunk.concat(words);
-
-          while (currentChunk.length > 4) {
-              chunks.push(currentChunk.splice(0, 4).join(' '));
-          }
-
-          if (/[,.\n]$/.test(sentence) && currentChunk.length > 0) {
+          let words = sentence.trim().split(/\s+/);
+          words.forEach(word => {
+            currentChunk.push(word);
+    
+            // Check if current chunk is meaningful
+            if (currentChunk.length >= 2) {
               chunks.push(currentChunk.join(' '));
               currentChunk = [];
-          }
-      });
+            }
+          });
 
+          // Push the last chunk if any words left
       if (currentChunk.length > 0) {
-          chunks.push(currentChunk.join(' '));
+        if (chunks.length > 0) {
+          // Join the last chunk with the first word of the current sentence
+          let lastChunk = chunks.pop();
+          lastChunk += ' ' + currentChunk[0];
+          chunks.push(lastChunk);
+          currentChunk = currentChunk.slice(1); // Remove the first word from currentChunk
+        }
+        chunks.push(currentChunk.join(' '));
+        currentChunk = [];
       }
+    });
 
       return chunks;
   }
