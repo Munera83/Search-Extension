@@ -83,23 +83,9 @@ function elementReady(getter, opts = {}) {
 document.addEventListener('keydown', function(event) {
   if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
     event.preventDefault();
-    showCustomModal();
+    createCustomModal();
   }
 
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    const modal = document.getElementById('custom-modal');
-    if (modal) {
-      const searchButton = modal.querySelector('input[type="submit"][value="Search"]');
-      if (searchButton) {
-        searchButton.click();
-
-        setTimeout(() => { 
-          scrollToResult(0); 
-        }, 500);
-      }
-    }
-  }
 });
 
 function customSearchFunction(searchTerm) {
@@ -113,7 +99,7 @@ function customSearchFunction(searchTerm) {
     showOverlay();
   } else {
     console.log("No results found.");
-    showCustomModal(true, searchTerm); 
+    createCustomModal(true, searchTerm); 
   }
 }
 
@@ -184,17 +170,7 @@ function createCustomModal(showAskAI = false, searchTerm = '') {
 
   const modal = document.createElement('div');
   modal.id = 'custom-modal';
-  modal.style.position = 'fixed';
-  modal.style.top = '10px';
-  modal.style.right = '10px';
-  modal.style.backgroundColor = 'white';
-  modal.style.padding = '10px';
-  modal.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
-  modal.style.zIndex = '9999';
-  modal.style.display = 'flex';
-  modal.style.flexDirection = 'column';
-  modal.style.width = '400px';
-  modal.style.cursor = 'move';
+  modal.classList.add('custom-modal');
 
   modal.addEventListener('mousedown', function(event) {
     if (event.target !== modal) return;
@@ -214,21 +190,25 @@ function createCustomModal(showAskAI = false, searchTerm = '') {
   input.type = 'text';
   input.placeholder = 'Enter search term';
   input.value = searchTerm;
-  inputContainer.appendChild(input);
-
-  const searchButton = document.createElement('input');
-  searchButton.type = 'submit';
-  searchButton.value = 'Search';
-  searchButton.onclick = function() {
-    const searchTerm = input.value.trim();
+  input.addEventListener('input', function() {
+    const searchTerm = input.value;
     if (searchTerm) {
-      customSearchFunction(searchTerm);
-      document.body.removeChild(modal);
+      customSearchFunction(searchTerm.trim());
+    } 
+    else if (!searchTerm && showAskAI){
+      removeAskAIButton();
     }
-  };
-  inputContainer.appendChild(searchButton);
+    else if (!searchTerm){
+      removeHighlights()
+    }
+  });
 
   if (showAskAI) {
+    appendAskAIButton();
+  } 
+  inputContainer.appendChild(input);
+
+  function appendAskAIButton() {
     const askAIButton = document.createElement('input');
     askAIButton.type = 'submit';
     askAIButton.value = 'Ask AI';
@@ -241,6 +221,12 @@ function createCustomModal(showAskAI = false, searchTerm = '') {
     inputContainer.appendChild(askAIButton);
   }
 
+  function removeAskAIButton() {
+    const askAIButton = inputContainer.querySelector('input[type="submit"][value="Ask AI"]');
+    if (askAIButton) {
+      inputContainer.removeChild(askAIButton);
+    }
+  }
   modal.appendChild(inputContainer);
 
   const responseContainer = document.createElement('div');
@@ -252,10 +238,6 @@ function createCustomModal(showAskAI = false, searchTerm = '') {
   document.body.appendChild(modal);
 
   input.focus();
-}
-
-function showCustomModal(showAskAI = false, searchTerm = '') {
-  createCustomModal(showAskAI, searchTerm);
 }
 
 function showOverlay() {
@@ -370,90 +352,74 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   responseContainer.scrollTop = responseContainer.scrollHeight;
 
 });
+// function addHighlighting() {
+//   function wrapTextInSpan(text) {
+//     const span = document.createElement('span');
+//     span.textContent = text;
+//     span.addEventListener('mouseenter', () => {
+//       span.classList.add('highlighted');
+//     });
+//     span.addEventListener('mouseleave', () => {
+//       span.classList.remove('highlighted');
+//     });
+//     span.addEventListener('click', () => {
+//       span.classList.toggle('persistent-highlight');
+//     });
+//     return span;
+//   }
+
+//   function processTextNode(node) {
+//     if (node.nodeType === Node.TEXT_NODE) {
+//       const parent = node.parentNode;
+//       const words = node.textContent.split(' ');
+//       words.forEach((word, index) => {
+//         if (index > 0) {
+//           parent.insertBefore(document.createTextNode(' '), node);
+//         }
+//         parent.insertBefore(wrapTextInSpan(word), node);
+//       });
+//       parent.removeChild(node);
+//     } else if (node.nodeType === Node.ELEMENT_NODE) {
+//       node.childNodes.forEach(processTextNode);
+//     }
+//   }
+
+//   document.querySelectorAll('p').forEach(paragraph => {
+//     paragraph.childNodes.forEach(processTextNode);
+//   });
+// }
 
 function addHighlighting() {
+  function wrapTextInSpans(textNode) {
+    const words = textNode.textContent.split(/\s+/); // Split by whitespace to preserve spaces
+    let html = '';
+    words.forEach((word, index) => {
+      if (index > 0) {
+        html += ' ';
+      }
+      html += `<span>${word}</span>`;
+    });
+    textNode.innerHTML = html;
+  }
 
-  function splitTextNode(node) {
-      let text = node.textContent;
-      let sentences = text.split(/(?<=[.,;])/);
-
-      let chunks = [];
-      let currentChunk = [];
-
-      sentences.forEach(sentence => {
-          let words = sentence.trim().split(/\s+/);
-          words.forEach(word => {
-            currentChunk.push(word);
-    
-            // Check if current chunk is meaningful
-            if (currentChunk.length >= 2) {
-              chunks.push(currentChunk.join(' '));
-              currentChunk = [];
-            }
-          });
-
-          // Push the last chunk if any words left
-      if (currentChunk.length > 0) {
-        if (chunks.length > 0) {
-          // Join the last chunk with the first word of the current sentence
-          let lastChunk = chunks.pop();
-          lastChunk += ' ' + currentChunk[0];
-          chunks.push(lastChunk);
-          currentChunk = currentChunk.slice(1); // Remove the first word from currentChunk
-        }
-        chunks.push(currentChunk.join(' '));
-        currentChunk = [];
+  document.querySelectorAll('p').forEach(paragraph => {
+    paragraph.childNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        wrapTextInSpans(node);
       }
     });
+  });
 
-      return chunks;
-  }
-
-  function wrapTextNode(textNode) {
-      let chunks = splitTextNode(textNode);
-
-      let fragment = document.createDocumentFragment();
-
-      chunks.forEach(chunk => {
-          let span = document.createElement('span');
-          span.textContent = chunk + ' ';
-
-          span.addEventListener('mouseenter', () => {
-              span.classList.add('highlighted');
-          });
-
-          span.addEventListener('mouseleave', () => {
-              span.classList.remove('highlighted');
-          });
-
-          span.addEventListener('click', () => {
-            span.classList.toggle('persistent-highlight');
-        });
-
-          fragment.appendChild(span);
-      });
-
-      return fragment;
-  }
-
-  let paragraphs = document.querySelectorAll('p');
-  paragraphs.forEach(paragraph => {
-      let childNodes = Array.from(paragraph.childNodes);
-
-      childNodes.forEach(node => {
-          if (node.nodeType === Node.TEXT_NODE) {
-              let wrappedFragment = wrapTextNode(node);
-              paragraph.replaceChild(wrappedFragment, node);
-          } else if (node.nodeType === Node.ELEMENT_NODE) {
-              let elementNodes = Array.from(node.childNodes);
-              elementNodes.forEach(childNode => {
-                  if (childNode.nodeType === Node.TEXT_NODE) {
-                      let wrappedFragment = wrapTextNode(childNode);
-                      node.replaceChild(wrappedFragment, childNode);
-                  }
-              });
-          }
-      });
+  document.querySelectorAll('p span').forEach(span => {
+    span.addEventListener('mouseenter', () => {
+      span.classList.add('highlighted');
+    });
+    span.addEventListener('mouseleave', () => {
+      span.classList.remove('highlighted');
+    });
+    span.addEventListener('click', () => {
+      span.classList.toggle('persistent-highlight');
+    });
   });
 }
 
@@ -461,4 +427,3 @@ elementReady('body').then(function (body){
 console.log("content is loaded");  
 addHighlighting();
 })
-//In our File Handling section you will learn how to open, read, write, and delete files.
