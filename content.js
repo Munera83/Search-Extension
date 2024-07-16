@@ -193,7 +193,7 @@ function createCustomModal(showAskAI = false, searchTerm = '') {
   input.addEventListener('input', function() {
     const searchTerm = input.value;
     if (searchTerm) {
-      customSearchFunction(searchTerm.trim());
+      customSearchFunction(searchTerm);
     } 
     else if (!searchTerm && showAskAI){
       removeAskAIButton();
@@ -352,74 +352,87 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   responseContainer.scrollTop = responseContainer.scrollHeight;
 
 });
-// function addHighlighting() {
-//   function wrapTextInSpan(text) {
-//     const span = document.createElement('span');
-//     span.textContent = text;
-//     span.addEventListener('mouseenter', () => {
-//       span.classList.add('highlighted');
-//     });
-//     span.addEventListener('mouseleave', () => {
-//       span.classList.remove('highlighted');
-//     });
-//     span.addEventListener('click', () => {
-//       span.classList.toggle('persistent-highlight');
-//     });
-//     return span;
-//   }
-
-//   function processTextNode(node) {
-//     if (node.nodeType === Node.TEXT_NODE) {
-//       const parent = node.parentNode;
-//       const words = node.textContent.split(' ');
-//       words.forEach((word, index) => {
-//         if (index > 0) {
-//           parent.insertBefore(document.createTextNode(' '), node);
-//         }
-//         parent.insertBefore(wrapTextInSpan(word), node);
-//       });
-//       parent.removeChild(node);
-//     } else if (node.nodeType === Node.ELEMENT_NODE) {
-//       node.childNodes.forEach(processTextNode);
-//     }
-//   }
-
-//   document.querySelectorAll('p').forEach(paragraph => {
-//     paragraph.childNodes.forEach(processTextNode);
-//   });
-// }
 
 function addHighlighting() {
-  function wrapTextInSpans(textNode) {
-    const words = textNode.textContent.split(/\s+/); // Split by whitespace to preserve spaces
-    let html = '';
-    words.forEach((word, index) => {
-      if (index > 0) {
-        html += ' ';
+
+  function splitTextNode(node) {
+      let text = node.textContent;
+      let sentences = text.split(/(?<=[.,;])/);
+
+      let chunks = [];
+      let currentChunk = [];
+
+      sentences.forEach(sentence => {
+          let words = sentence.trim().split(/\s+/);
+          words.forEach(word => {
+            currentChunk.push(word);
+    
+            if (currentChunk.length >= 3) {
+              chunks.push(currentChunk.join(' '));
+              currentChunk = [];
+            }
+          });
+
+      if (currentChunk.length > 0) {
+        if (chunks.length > 0) {
+          let lastChunk = chunks.pop();
+          lastChunk += ' ' + currentChunk[0];
+          chunks.push(lastChunk);
+          currentChunk = currentChunk.slice(1); 
+        }
+        chunks.push(currentChunk.join(' '));
+        currentChunk = [];
       }
-      html += `<span>${word}</span>`;
     });
-    textNode.innerHTML = html;
+
+      return chunks;
   }
 
-  document.querySelectorAll('p').forEach(paragraph => {
-    paragraph.childNodes.forEach(node => {
-      if (node.nodeType === Node.TEXT_NODE) {
-        wrapTextInSpans(node);
-      }
-    });
-  });
+  function wrapTextNode(textNode) {
+      let chunks = splitTextNode(textNode);
 
-  document.querySelectorAll('p span').forEach(span => {
-    span.addEventListener('mouseenter', () => {
-      span.classList.add('highlighted');
-    });
-    span.addEventListener('mouseleave', () => {
-      span.classList.remove('highlighted');
-    });
-    span.addEventListener('click', () => {
-      span.classList.toggle('persistent-highlight');
-    });
+      let fragment = document.createDocumentFragment();
+
+      chunks.forEach(chunk => {
+          let span = document.createElement('span');
+          span.textContent = chunk + ' ';
+
+          span.addEventListener('mouseenter', () => {
+              span.classList.add('highlighted');
+          });
+
+          span.addEventListener('mouseleave', () => {
+              span.classList.remove('highlighted');
+          });
+
+          span.addEventListener('click', () => {
+            span.classList.toggle('persistent-highlight');
+        });
+
+          fragment.appendChild(span);
+      });
+
+      return fragment;
+  }
+
+  let paragraphs = document.querySelectorAll('p');
+  paragraphs.forEach(paragraph => {
+      let childNodes = Array.from(paragraph.childNodes);
+
+      childNodes.forEach(node => {
+          if (node.nodeType === Node.TEXT_NODE) {
+              let wrappedFragment = wrapTextNode(node);
+              paragraph.replaceChild(wrappedFragment, node);
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+              let elementNodes = Array.from(node.childNodes);
+              elementNodes.forEach(childNode => {
+                  if (childNode.nodeType === Node.TEXT_NODE) {
+                      let wrappedFragment = wrapTextNode(childNode);
+                      node.replaceChild(wrappedFragment, childNode);
+                  }
+              });
+          }
+      });
   });
 }
 
