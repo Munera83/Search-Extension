@@ -8,24 +8,24 @@ async function askAI(question, senderTabId) {
   history.push(`User: ${question}`);
 
   let combinedInputs = `Role: ${role}\n\nContext: ${pageText}\n\n`;
-   if (history.length > 1) {
-     const conversationHistory = history.join('\n');
-     combinedInputs += `Conversation:\n${conversationHistory}\nSystem:`;
-   } else {
-     combinedInputs += `User: ${question}. \nSystem:`;
-   }
+  if (history.length > 1) {
+    const conversationHistory = history.join('\n');
+    combinedInputs += `Conversation:\n${conversationHistory}\nSystem:`;
+  } else {
+    combinedInputs += `User: ${question}. \nSystem:`;
+  }
 
   console.log("Inputs: ", combinedInputs);
   try {
-    const stream = hf.textGenerationStream({ 
-        inputs: combinedInputs, 
-        parameters: { max_new_tokens: 500} 
+    const stream = hf.textGenerationStream({
+      inputs: combinedInputs,
+      parameters: { max_new_tokens: 500 }
     });
 
-    let response='';
+    let response = '';
     for await (const r of stream) {
-    response += r.token.text;
-    chrome.tabs.sendMessage(senderTabId, { action: 'partialResponse', text: r.token.text });
+      response += r.token.text;
+      chrome.tabs.sendMessage(senderTabId, { action: 'partialResponse', text: r.token.text });
     }
     history.push(`System: ${response}`);
 
