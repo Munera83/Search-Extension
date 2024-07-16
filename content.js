@@ -83,9 +83,23 @@ function elementReady(getter, opts = {}) {
 document.addEventListener('keydown', function(event) {
   if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
     event.preventDefault();
-    createCustomModal();
+    showCustomModal();
   }
 
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    const modal = document.getElementById('custom-modal');
+    if (modal) {
+      const searchButton = modal.querySelector('input[type="submit"][value="Search"]');
+      if (searchButton) {
+        searchButton.click();
+
+        setTimeout(() => { 
+          scrollToResult(0); 
+        }, 500);
+      }
+    }
+  }
 });
 
 function customSearchFunction(searchTerm) {
@@ -99,7 +113,7 @@ function customSearchFunction(searchTerm) {
     showOverlay();
   } else {
     console.log("No results found.");
-    createCustomModal(true, searchTerm); 
+    showCustomModal(true, searchTerm); 
   }
 }
 
@@ -170,7 +184,17 @@ function createCustomModal(showAskAI = false, searchTerm = '') {
 
   const modal = document.createElement('div');
   modal.id = 'custom-modal';
-  modal.classList.add('custom-modal');
+  modal.style.position = 'fixed';
+  modal.style.top = '10px';
+  modal.style.right = '10px';
+  modal.style.backgroundColor = 'white';
+  modal.style.padding = '10px';
+  modal.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+  modal.style.zIndex = '9999';
+  modal.style.display = 'flex';
+  modal.style.flexDirection = 'column';
+  modal.style.width = '400px';
+  modal.style.cursor = 'move';
 
   modal.addEventListener('mousedown', function(event) {
     if (event.target !== modal) return;
@@ -190,25 +214,21 @@ function createCustomModal(showAskAI = false, searchTerm = '') {
   input.type = 'text';
   input.placeholder = 'Enter search term';
   input.value = searchTerm;
-  input.addEventListener('input', function() {
-    const searchTerm = input.value;
-    if (searchTerm) {
-      customSearchFunction(searchTerm);
-    } 
-    else if (!searchTerm && showAskAI){
-      removeAskAIButton();
-    }
-    else if (!searchTerm){
-      removeHighlights()
-    }
-  });
-
-  if (showAskAI) {
-    appendAskAIButton();
-  } 
   inputContainer.appendChild(input);
 
-  function appendAskAIButton() {
+  const searchButton = document.createElement('input');
+  searchButton.type = 'submit';
+  searchButton.value = 'Search';
+  searchButton.onclick = function() {
+    const searchTerm = input.value.trim();
+    if (searchTerm) {
+      customSearchFunction(searchTerm);
+      document.body.removeChild(modal);
+    }
+  };
+  inputContainer.appendChild(searchButton);
+
+  if (showAskAI) {
     const askAIButton = document.createElement('input');
     askAIButton.type = 'submit';
     askAIButton.value = 'Ask AI';
@@ -221,12 +241,6 @@ function createCustomModal(showAskAI = false, searchTerm = '') {
     inputContainer.appendChild(askAIButton);
   }
 
-  function removeAskAIButton() {
-    const askAIButton = inputContainer.querySelector('input[type="submit"][value="Ask AI"]');
-    if (askAIButton) {
-      inputContainer.removeChild(askAIButton);
-    }
-  }
   modal.appendChild(inputContainer);
 
   const responseContainer = document.createElement('div');
@@ -238,6 +252,10 @@ function createCustomModal(showAskAI = false, searchTerm = '') {
   document.body.appendChild(modal);
 
   input.focus();
+}
+
+function showCustomModal(showAskAI = false, searchTerm = '') {
+  createCustomModal(showAskAI, searchTerm);
 }
 
 function showOverlay() {
@@ -367,18 +385,21 @@ function addHighlighting() {
           words.forEach(word => {
             currentChunk.push(word);
     
-            if (currentChunk.length >= 3) {
+            // Check if current chunk is meaningful
+            if (currentChunk.length >= 2) {
               chunks.push(currentChunk.join(' '));
               currentChunk = [];
             }
           });
 
+          // Push the last chunk if any words left
       if (currentChunk.length > 0) {
         if (chunks.length > 0) {
+          // Join the last chunk with the first word of the current sentence
           let lastChunk = chunks.pop();
           lastChunk += ' ' + currentChunk[0];
           chunks.push(lastChunk);
-          currentChunk = currentChunk.slice(1); 
+          currentChunk = currentChunk.slice(1); // Remove the first word from currentChunk
         }
         chunks.push(currentChunk.join(' '));
         currentChunk = [];
