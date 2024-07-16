@@ -223,7 +223,9 @@ function createCustomModal(showAskAI = false, searchTerm = '') {
     const searchTerm = input.value.trim();
     if (searchTerm) {
       customSearchFunction(searchTerm);
-      document.body.removeChild(modal);
+    } 
+    else if (!searchTerm && showAskAI){
+      removeAskAIButton();
     }
   };
   inputContainer.appendChild(searchButton);
@@ -385,21 +387,18 @@ function addHighlighting() {
           words.forEach(word => {
             currentChunk.push(word);
     
-            // Check if current chunk is meaningful
-            if (currentChunk.length >= 2) {
+            if (currentChunk.length >= 3) {
               chunks.push(currentChunk.join(' '));
               currentChunk = [];
             }
           });
 
-          // Push the last chunk if any words left
       if (currentChunk.length > 0) {
         if (chunks.length > 0) {
-          // Join the last chunk with the first word of the current sentence
           let lastChunk = chunks.pop();
           lastChunk += ' ' + currentChunk[0];
           chunks.push(lastChunk);
-          currentChunk = currentChunk.slice(1); // Remove the first word from currentChunk
+          currentChunk = currentChunk.slice(1); 
         }
         chunks.push(currentChunk.join(' '));
         currentChunk = [];
