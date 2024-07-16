@@ -34,30 +34,6 @@
     font-size: 17px;
     flex-shrink: 0;}
   
-  .search-input {
-    flex-grow: 1;
-    height: 40px;
-    padding: 3px 7px;
-    font-size: 17px;
-    background-color: #fff;
-    border: 1px solid #000;
-    border-radius: 5px;}
-  
-  .buttons-container {
-    display: flex;
-    gap: 10px;}
-  
-  .search-button,
-  .ask-ai-button {
-    background-color: #000;
-    color: #fff;
-    height: 40px;
-    border-radius: 5px;
-    padding: 0 10px;
-    font-size: 17px;
-    flex-shrink: 0;
-    cursor: pointer;}
-  
   .ai-response-container {
     max-height: 300px; 
     overflow-y: auto;
