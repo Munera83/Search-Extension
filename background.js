@@ -1,51 +1,98 @@
-import { HfInferenceEndpoint } from './inference.js';
+const url = "https://api.openai.com/v1/chat/completions";
+const apiKey = `XXX`;
 
+const controller = new AbortController();
 const conversations = {};
+
 async function askAI(question, senderTabId) {
-  const hf = new HfInferenceEndpoint('https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct', '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');
-
   const { pageText, role, history } = conversations[senderTabId];
-  history.push(`User: ${question}`);
 
-  let combinedInputs = `Role: ${role}\n\nContext: ${pageText}\n\n`;
-  if (history.length > 1) {
-    const conversationHistory = history.join('\n');
-    combinedInputs += `Conversation:\n${conversationHistory}\nSystem:`;
-  } else {
-    combinedInputs += `User: ${question}. \nSystem:`;
-  }
+  history.push({ role: "user", content: question });
 
-  console.log("Inputs: ", combinedInputs);
+  let messages = [
+    { role: "system", content: `Context: ${pageText}` },
+    ...history.map((entry) => ({
+      role: entry.role,
+      content: entry.content,
+    }))
+  ];
+
+  console.log("Messages: ", messages);
+  
   try {
-    const stream = hf.textGenerationStream({
-      inputs: combinedInputs,
-      parameters: { max_new_tokens: 500 }
+    const stream = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        messages: messages,
+        temperature: 0.6,
+        model: "gpt-3.5-turbo",
+        max_tokens: 200,
+        stream: true,
+      }),
+      signal: controller.signal,
     });
 
-    let response = '';
-    for await (const r of stream) {
-      response += r.token.text;
-      chrome.tabs.sendMessage(senderTabId, { action: 'partialResponse', text: r.token.text });
+    const decoder = new TextDecoder();
+    let response = "";
+
+    for await (const chunk of stream.body) {
+      const decodedChunk = decoder.decode(chunk);
+      const lines = decodedChunk
+        .split("\n")
+        .map((line) => line.replace("data: ", ""))
+        .filter((line) => line.length > 0)
+        .filter((line) => line.length > 0 && line !== "[DONE]");
+
+      for (const line of lines) {
+        try {
+          const parsedLine = JSON.parse(line);
+        const {
+          choices: [
+            {
+              delta: { content },
+            },
+          ],
+        } = parsedLine;
+
+        if (content) {
+          response += content;
+          chrome.tabs.sendMessage(senderTabId, {
+            action: "partialResponse",
+            text: content,
+          });
+        }
+      }catch (error) {
+        console.error("Error parsing line: ", line, error);
+      }
     }
-    history.push(`System: ${response}`);
 
-    chrome.tabs.sendMessage(senderTabId, { action: 'streamEnd' });
+    }
 
+    history.push({ role: "assistant", content: response });
+
+    chrome.tabs.sendMessage(senderTabId, { action: "streamEnd" });
   } catch (error) {
-    console.error('Error asking AI:', error);
-    chrome.tabs.sendMessage(senderTabId, { action: 'error', text: 'Error asking AI. Please try again later.' });
+    console.error("Error asking AI:", error);
+    chrome.tabs.sendMessage(senderTabId, {
+      action: "error",
+      text: "Error asking AI. Please try again later.",
+    });
   }
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'askAI') {
+  if (message.action === "askAI") {
     const senderTabId = sender.tab.id;
 
     if (!conversations[senderTabId]) {
       conversations[senderTabId] = {
         pageText: message.pageText,
-        role: "You are a helpful AI assistant. Respond to the latest question only as a System, Don't simulate a User. Do not use the context if it is not needed.",
-        history: []
+        role: "system",
+        history: [],
       };
     }
     askAI(message.question, senderTabId);
