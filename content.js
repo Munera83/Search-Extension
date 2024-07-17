@@ -3,10 +3,10 @@ let searchResults = [];
 let isDragging = false;
 let dragStartX, dragStartY, modalStartX, modalStartY;
 
-const link = document.createElement('link');
-link.href = chrome.runtime.getURL('styles.css');
-link.type = 'text/css';
-link.rel = 'stylesheet';
+const link = document.createElement("link");
+link.href = chrome.runtime.getURL("styles.css");
+link.type = "text/css";
+link.rel = "stylesheet";
 document.head.appendChild(link);
 
 /**
@@ -25,93 +25,99 @@ document.head.appendChild(link);
  */
 function elementReady(getter, opts = {}) {
   return new Promise((resolve, reject) => {
-      opts = Object.assign({
-          timeout: 0,
-          target: document.documentElement
-      }, opts);
-      const returnMultipleElements = getter instanceof Array && getter.length === 1;
-      let _timeout;
-      const _getter = typeof getter === 'function' ?
-          (mutationRecords) => {
-              try {
-                  return getter(mutationRecords);
-              } catch (e) {
-                  return false;
-              }
-          } :
-          () => returnMultipleElements ? document.querySelectorAll(getter[0]) : document.querySelector(getter)
-      ;
-      const computeResolveValue = function (mutationRecords) {
-          // see if it already exists
-          const ret = _getter(mutationRecords || {});
-          if (ret && (!returnMultipleElements || ret.length)) {
-              resolve(ret);
-              clearTimeout(_timeout);
-
-
-              return true;
+    opts = Object.assign(
+      {
+        timeout: 0,
+        target: document.documentElement,
+      },
+      opts,
+    );
+    const returnMultipleElements =
+      getter instanceof Array && getter.length === 1;
+    let _timeout;
+    const _getter =
+      typeof getter === "function"
+        ? (mutationRecords) => {
+            try {
+              return getter(mutationRecords);
+            } catch (e) {
+              return false;
+            }
           }
-      };
+        : () =>
+            returnMultipleElements
+              ? document.querySelectorAll(getter[0])
+              : document.querySelector(getter);
+    const computeResolveValue = function (mutationRecords) {
+      // see if it already exists
+      const ret = _getter(mutationRecords || {});
+      if (ret && (!returnMultipleElements || ret.length)) {
+        resolve(ret);
+        clearTimeout(_timeout);
 
-
-      if (computeResolveValue(_getter())) {
-          return;
+        return true;
       }
+    };
 
+    if (computeResolveValue(_getter())) {
+      return;
+    }
 
-      if (opts.timeout)
-          _timeout = setTimeout(() => {
-              const error = new Error(`elementReady(${getter}) timed out at ${opts.timeout}ms`);
-              reject(error);
-          }, opts.timeout);
+    if (opts.timeout)
+      _timeout = setTimeout(() => {
+        const error = new Error(
+          `elementReady(${getter}) timed out at ${opts.timeout}ms`,
+        );
+        reject(error);
+      }, opts.timeout);
 
-
-
-
-      new MutationObserver((mutationRecords, observer) => {
-          const completed = computeResolveValue(_getter(mutationRecords));
-          if (completed) {
-              observer.disconnect();
-          }
-      }).observe(opts.target, {
-          childList: true,
-          subtree: true
-      });
+    new MutationObserver((mutationRecords, observer) => {
+      const completed = computeResolveValue(_getter(mutationRecords));
+      if (completed) {
+        observer.disconnect();
+      }
+    }).observe(opts.target, {
+      childList: true,
+      subtree: true,
+    });
   });
 }
 
-document.addEventListener('keydown', function(event) {
-  if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+document.addEventListener("keydown", function (event) {
+  if ((event.ctrlKey || event.metaKey) && event.key === "f") {
     event.preventDefault();
     createCustomModal();
   }
-
 });
 
 function customSearchFunction(searchTerm) {
   removeHighlights();
   highlightText(searchTerm);
 
-  searchResults = Array.from(document.querySelectorAll('mark'));
+  searchResults = Array.from(document.querySelectorAll("mark"));
   if (searchResults.length > 0) {
     currentIndex = 0;
     scrollToResult(currentIndex);
     showOverlay();
   } else {
     console.log("No results found.");
-    createCustomModal(true, searchTerm); 
+    createCustomModal(true, searchTerm);
   }
 }
 
 function highlightText(searchTerm) {
-  const regex = new RegExp(`(${searchTerm})`, 'gi');
+  const regex = new RegExp(`(${searchTerm})`, "gi");
 
   function replaceText(node) {
-    if (node.nodeType === Node.TEXT_NODE && node.parentNode.nodeName !== 'SCRIPT' && node.parentNode.nodeName !== 'STYLE') {
+    if (
+      node.nodeType === Node.TEXT_NODE &&
+      node.parentNode.nodeName !== "SCRIPT" &&
+      node.parentNode.nodeName !== "STYLE"
+    ) {
       const match = node.nodeValue.match(regex);
       if (match) {
-        const span = document.createElement('span');
-        span.innerHTML = node.nodeValue.replace(regex, '<mark>$1</mark>');
+        const span = document.createElement("span");
+        span.innerHTML = node.nodeValue.replace(regex, "<mark>$1</mark>");
         node.parentNode.replaceChild(span, node);
       }
     } else if (node.nodeType === Node.ELEMENT_NODE) {
@@ -125,10 +131,10 @@ function highlightText(searchTerm) {
 function scrollToResult(index) {
   if (index >= 0 && index < searchResults.length) {
     const result = searchResults[index];
-    result.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    result.style.backgroundColor = 'yellow';
+    result.scrollIntoView({ behavior: "smooth", block: "center" });
+    result.style.backgroundColor = "yellow";
     if (currentIndex !== -1 && currentIndex !== index) {
-      searchResults[currentIndex].style.backgroundColor = 'initial';
+      searchResults[currentIndex].style.backgroundColor = "initial";
     }
     currentIndex = index;
     console.log(`Scrolled to result ${index + 1} of ${searchResults.length}`);
@@ -137,13 +143,13 @@ function scrollToResult(index) {
   }
 }
 
-document.addEventListener('keydown', function(event) {
-  if (event.key === 'ArrowDown') {
+document.addEventListener("keydown", function (event) {
+  if (event.key === "ArrowDown") {
     event.preventDefault();
     if (currentIndex < searchResults.length - 1) {
       scrollToResult(currentIndex + 1);
     }
-  } else if (event.key === 'ArrowUp') {
+  } else if (event.key === "ArrowUp") {
     event.preventDefault();
     if (currentIndex > 0) {
       scrollToResult(currentIndex - 1);
@@ -152,7 +158,7 @@ document.addEventListener('keydown', function(event) {
 });
 
 function removeHighlights() {
-  document.querySelectorAll('mark').forEach(mark => {
+  document.querySelectorAll("mark").forEach((mark) => {
     const parent = mark.parentNode;
     parent.replaceChild(document.createTextNode(mark.textContent), mark);
     parent.normalize();
@@ -162,57 +168,55 @@ function removeHighlights() {
   hideOverlay();
 }
 
-function createCustomModal(showAskAI = false, searchTerm = '') {
-  const existingModal = document.getElementById('custom-modal');
+function createCustomModal(showAskAI = false, searchTerm = "") {
+  const existingModal = document.getElementById("custom-modal");
   if (existingModal) {
     document.body.removeChild(existingModal);
   }
 
-  const modal = document.createElement('div');
-  modal.id = 'custom-modal';
-  modal.classList.add('custom-modal');
+  const modal = document.createElement("div");
+  modal.id = "custom-modal";
+  modal.classList.add("custom-modal");
 
-  modal.addEventListener('mousedown', function(event) {
+  modal.addEventListener("mousedown", function (event) {
     if (event.target !== modal) return;
     isDragging = true;
     dragStartX = event.clientX;
     dragStartY = event.clientY;
     modalStartX = modal.offsetLeft;
     modalStartY = modal.offsetTop;
-    document.addEventListener('mousemove', onDrag);
-    document.addEventListener('mouseup', stopDrag);
+    document.addEventListener("mousemove", onDrag);
+    document.addEventListener("mouseup", stopDrag);
   });
 
-  const inputContainer = document.createElement('div');
-  inputContainer.classList.add('input-container');
+  const inputContainer = document.createElement("div");
+  inputContainer.classList.add("input-container");
 
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.placeholder = 'Enter search term';
+  const input = document.createElement("input");
+  input.type = "text";
+  input.placeholder = "Enter search term";
   input.value = searchTerm;
-  input.addEventListener('input', function() {
+  input.addEventListener("input", function () {
     const searchTerm = input.value;
     if (searchTerm) {
       customSearchFunction(searchTerm);
-    } 
-    else if (!searchTerm && showAskAI){
+    } else if (!searchTerm && showAskAI) {
       removeAskAIButton();
-    }
-    else if (!searchTerm){
-      removeHighlights()
+    } else if (!searchTerm) {
+      removeHighlights();
     }
   });
 
   if (showAskAI) {
     appendAskAIButton();
-  } 
+  }
   inputContainer.appendChild(input);
 
   function appendAskAIButton() {
-    const askAIButton = document.createElement('input');
-    askAIButton.type = 'submit';
-    askAIButton.value = 'Ask AI';
-    askAIButton.onclick = function() {
+    const askAIButton = document.createElement("input");
+    askAIButton.type = "submit";
+    askAIButton.value = "Ask AI";
+    askAIButton.onclick = function () {
       const question = input.value.trim();
       if (question) {
         askAIFromContent(question);
@@ -222,17 +226,19 @@ function createCustomModal(showAskAI = false, searchTerm = '') {
   }
 
   function removeAskAIButton() {
-    const askAIButton = inputContainer.querySelector('input[type="submit"][value="Ask AI"]');
+    const askAIButton = inputContainer.querySelector(
+      'input[type="submit"][value="Ask AI"]',
+    );
     if (askAIButton) {
       inputContainer.removeChild(askAIButton);
     }
   }
   modal.appendChild(inputContainer);
 
-  const responseContainer = document.createElement('div');
-  responseContainer.id = 'ai-response-container';
-  responseContainer.classList.add('ai-response-container');
-  responseContainer.classList.add('scrollable'); 
+  const responseContainer = document.createElement("div");
+  responseContainer.id = "ai-response-container";
+  responseContainer.classList.add("ai-response-container");
+  responseContainer.classList.add("scrollable");
   modal.appendChild(responseContainer);
 
   document.body.appendChild(modal);
@@ -241,32 +247,32 @@ function createCustomModal(showAskAI = false, searchTerm = '') {
 }
 
 function showOverlay() {
-  let overlay = document.getElementById('custom-search-overlay');
+  let overlay = document.getElementById("custom-search-overlay");
   if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'custom-search-overlay';
-    overlay.classList.add('custom-search-overlay');
-    const upArrow = document.createElement('button');
-    upArrow.textContent = '↑';
-    upArrow.classList.add('overlay-button');
+    overlay = document.createElement("div");
+    overlay.id = "custom-search-overlay";
+    overlay.classList.add("custom-search-overlay");
+    const upArrow = document.createElement("button");
+    upArrow.textContent = "↑";
+    upArrow.classList.add("overlay-button");
     upArrow.onclick = function () {
       if (currentIndex > 0) {
         scrollToResult(currentIndex - 1);
       }
     };
 
-    const downArrow = document.createElement('button');
-    downArrow.textContent = '↓';
-    downArrow.classList.add('overlay-button');
+    const downArrow = document.createElement("button");
+    downArrow.textContent = "↓";
+    downArrow.classList.add("overlay-button");
     downArrow.onclick = function () {
       if (currentIndex < searchResults.length - 1) {
         scrollToResult(currentIndex + 1);
       }
     };
 
-    const closeButton = document.createElement('button');
-    closeButton.textContent = 'X';
-    closeButton.classList.add('overlay-button');
+    const closeButton = document.createElement("button");
+    closeButton.textContent = "X";
+    closeButton.classList.add("overlay-button");
     closeButton.onclick = function () {
       removeHighlights();
     };
@@ -276,14 +282,14 @@ function showOverlay() {
     overlay.appendChild(closeButton);
     document.body.appendChild(overlay);
   } else {
-    overlay.style.display = 'flex';
+    overlay.style.display = "flex";
   }
 }
 
 function hideOverlay() {
-  const overlay = document.getElementById('custom-search-overlay');
+  const overlay = document.getElementById("custom-search-overlay");
   if (overlay) {
-    overlay.style.display = 'none';
+    overlay.style.display = "none";
   }
 }
 
@@ -293,7 +299,7 @@ function onDrag(event) {
     const deltaY = event.clientY - dragStartY;
     const newLeft = modalStartX + deltaX;
     const newTop = modalStartY + deltaY;
-    const modal = document.getElementById('custom-modal');
+    const modal = document.getElementById("custom-modal");
     modal.style.left = `${newLeft}px`;
     modal.style.top = `${newTop}px`;
   }
@@ -301,22 +307,22 @@ function onDrag(event) {
 
 function stopDrag() {
   isDragging = false;
-  document.removeEventListener('mousemove', onDrag);
-  document.removeEventListener('mouseup', stopDrag);
+  document.removeEventListener("mousemove", onDrag);
+  document.removeEventListener("mouseup", stopDrag);
 }
 
 function getAllTextFromPage() {
-  const headers = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-  const paragraphs = document.querySelectorAll('p');
+  const headers = document.querySelectorAll("h1, h2, h3, h4, h5, h6");
+  const paragraphs = document.querySelectorAll("p");
 
-  let pageText = '';
+  let pageText = "";
 
-  headers.forEach(header => {
-    pageText += header.textContent.trim() + ' ';
+  headers.forEach((header) => {
+    pageText += header.textContent.trim() + " ";
   });
 
-  paragraphs.forEach(paragraph => {
-    pageText += paragraph.textContent.trim() + ' ';
+  paragraphs.forEach((paragraph) => {
+    pageText += paragraph.textContent.trim() + " ";
   });
 
   return pageText.trim();
@@ -324,119 +330,116 @@ function getAllTextFromPage() {
 
 async function askAIFromContent(question) {
   const pageText = getAllTextFromPage();
-  const responseContainer = document.getElementById('ai-response-container');
-  responseContainer.style.display = 'block'; 
-  responseContainer.innerHTML = '';
-  responseContainer.classList.add('scrollable'); 
+  const responseContainer = document.getElementById("ai-response-container");
+  responseContainer.style.display = "block";
+  responseContainer.innerHTML = "";
+  responseContainer.classList.add("scrollable");
 
-  chrome.runtime.sendMessage(
-    {
-      action: 'askAI',
-      question,
-      pageText
-    }
-  );
+  chrome.runtime.sendMessage({
+    action: "askAI",
+    question,
+    pageText,
+  });
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  const responseContainer = document.getElementById('ai-response-container');
+  const responseContainer = document.getElementById("ai-response-container");
 
-  if (message.action === 'partialResponse') {
-    if (!message.text.includes('<|eot_id|>')) {
-    responseContainer.innerHTML += message.text; 
-  }} else if (message.action === 'streamEnd') {
-    console.log('Stream ended');
-  } else if (message.action === 'error') {
+  if (message.action === "partialResponse") {
+    if (!message.text.includes("<|eot_id|>")) {
+      responseContainer.innerHTML += message.text;
+    }
+  } else if (message.action === "streamEnd") {
+    console.log("Stream ended");
+  } else if (message.action === "error") {
     responseContainer.innerHTML = `<strong>Error:</strong> <p>${message.text}</p>`;
   }
   responseContainer.scrollTop = responseContainer.scrollHeight;
-
 });
 
 function addHighlighting() {
-
   function splitTextNode(node) {
-      let text = node.textContent;
-      let sentences = text.split(/(?<=[.,;])/);
+    let text = node.textContent;
+    let sentences = text.split(/(?<=[.,;])/);
 
-      let chunks = [];
-      let currentChunk = [];
+    let chunks = [];
+    let currentChunk = [];
 
-      sentences.forEach(sentence => {
-          let words = sentence.trim().split(/\s+/);
-          words.forEach(word => {
-            currentChunk.push(word);
-    
-            if (currentChunk.length >= 3) {
-              chunks.push(currentChunk.join(' '));
-              currentChunk = [];
-            }
-          });
+    sentences.forEach((sentence) => {
+      let words = sentence.trim().split(/\s+/);
+      words.forEach((word) => {
+        currentChunk.push(word);
+
+        if (currentChunk.length >= 3) {
+          chunks.push(currentChunk.join(" "));
+          currentChunk = [];
+        }
+      });
 
       if (currentChunk.length > 0) {
         if (chunks.length > 0) {
           let lastChunk = chunks.pop();
-          lastChunk += ' ' + currentChunk[0];
+          lastChunk += " " + currentChunk[0];
           chunks.push(lastChunk);
-          currentChunk = currentChunk.slice(1); 
+          currentChunk = currentChunk.slice(1);
         }
-        chunks.push(currentChunk.join(' '));
+        chunks.push(currentChunk.join(" "));
         currentChunk = [];
       }
     });
 
-      return chunks;
+    return chunks;
   }
 
   function wrapTextNode(textNode) {
-      let chunks = splitTextNode(textNode);
+    let chunks = splitTextNode(textNode);
 
-      let fragment = document.createDocumentFragment();
+    let fragment = document.createDocumentFragment();
 
-      chunks.forEach(chunk => {
-          let span = document.createElement('span');
-          span.textContent = chunk + ' ';
+    chunks.forEach((chunk) => {
+      let span = document.createElement("span");
+      span.textContent = chunk + " ";
 
-          span.addEventListener('mouseenter', () => {
-              span.classList.add('highlighted');
-          });
-
-          span.addEventListener('mouseleave', () => {
-              span.classList.remove('highlighted');
-          });
-
-          span.addEventListener('click', () => {
-            span.classList.toggle('persistent-highlight');
-        });
-
-          fragment.appendChild(span);
+      span.addEventListener("mouseenter", () => {
+        span.classList.add("highlighted");
       });
 
-      return fragment;
+      span.addEventListener("mouseleave", () => {
+        span.classList.remove("highlighted");
+      });
+
+      span.addEventListener("click", () => {
+        span.classList.toggle("persistent-highlight");
+      });
+
+      fragment.appendChild(span);
+    });
+
+    return fragment;
   }
 
-  let paragraphs = document.querySelectorAll('p');
-  paragraphs.forEach(paragraph => {
-      let childNodes = Array.from(paragraph.childNodes);
+  let paragraphs = document.querySelectorAll("p");
+  paragraphs.forEach((paragraph) => {
+    let childNodes = Array.from(paragraph.childNodes);
 
-      childNodes.forEach(node => {
-          if (node.nodeType === Node.TEXT_NODE) {
-              let wrappedFragment = wrapTextNode(node);
-              paragraph.replaceChild(wrappedFragment, node);
-          } else if (node.nodeType === Node.ELEMENT_NODE) {
-              let elementNodes = Array.from(node.childNodes);
-              elementNodes.forEach(childNode => {
-                  if (childNode.nodeType === Node.TEXT_NODE) {
-                      let wrappedFragment = wrapTextNode(childNode);
-                      node.replaceChild(wrappedFragment, childNode);
-                  }
-              });
+    childNodes.forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        let wrappedFragment = wrapTextNode(node);
+        paragraph.replaceChild(wrappedFragment, node);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        let elementNodes = Array.from(node.childNodes);
+        elementNodes.forEach((childNode) => {
+          if (childNode.nodeType === Node.TEXT_NODE) {
+            let wrappedFragment = wrapTextNode(childNode);
+            node.replaceChild(wrappedFragment, childNode);
           }
-      });
+        });
+      }
+    });
   });
 }
 
-elementReady('body').then(function (body){
-console.log("content is loaded");  
-addHighlighting();
-})
+elementReady("body").then(function (body) {
+  console.log("content is loaded");
+  addHighlighting();
+});
