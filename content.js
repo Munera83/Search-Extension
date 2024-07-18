@@ -108,24 +108,61 @@ function customSearchFunction(searchTerm) {
 function highlightText(searchTerm) {
   const regex = new RegExp(`(${searchTerm})`, "gi");
 
-  function replaceText(node) {
+  const textNodes = [];
+  const parentNodes = new Map();
+
+  function collectTextNodes(node) {
     if (
       node.nodeType === Node.TEXT_NODE &&
       node.parentNode.nodeName !== "SCRIPT" &&
       node.parentNode.nodeName !== "STYLE"
     ) {
-      const match = node.nodeValue.match(regex);
-      if (match) {
-        const span = document.createElement("span");
-        span.innerHTML = node.nodeValue.replace(regex, "<mark>$1</mark>");
-        node.parentNode.replaceChild(span, node);
-      }
+      textNodes.push(node);
+      parentNodes.set(node, node.parentNode);
     } else if (node.nodeType === Node.ELEMENT_NODE) {
-      node.childNodes.forEach(replaceText);
+      node.childNodes.forEach(collectTextNodes);
     }
   }
 
-  replaceText(document.body);
+  collectTextNodes(document.body);
+
+  const fullText = textNodes.map((node) => node.nodeValue).join("");
+
+  let match;
+  while ((match = regex.exec(fullText)) !== null) {
+    const startIndex = match.index;
+    const endIndex = regex.lastIndex;
+
+    let currentPos = 0;
+
+    for (let i = 0; i < textNodes.length; i++) {
+      const textNode = textNodes[i];
+      const textLength = textNode.nodeValue.length;
+
+      if (currentPos + textLength > startIndex) {
+        const markStart = Math.max(0, startIndex - currentPos);
+        const markEnd = Math.min(textLength, endIndex - currentPos);
+
+        const beforeText = textNode.nodeValue.slice(0, markStart);
+        const matchText = textNode.nodeValue.slice(markStart, markEnd);
+        const afterText = textNode.nodeValue.slice(markEnd);
+
+        const span = document.createElement("span");
+        span.innerHTML = `${beforeText}<mark>${matchText}</mark>${afterText}`;
+
+        const parentNode = parentNodes.get(textNode);
+        if (parentNode) {
+          parentNode.replaceChild(span, textNode);
+        }
+
+        currentPos += textLength;
+      } else {
+        currentPos += textLength;
+      }
+
+      if (currentPos >= endIndex) break;
+    }
+  }
 }
 
 function scrollToResult(index) {
