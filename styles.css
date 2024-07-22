@@ -83,4 +83,8 @@
 .highlighted,
 .persistent-highlight {
   background-color: yellow;
+  border-radius: 3px;
+  padding: 2px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
