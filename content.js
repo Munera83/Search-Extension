@@ -244,6 +244,17 @@ function createCustomModal(showAskAI = false, searchTerm = "") {
     }
   });
 
+  input.addEventListener("keypress", function (event) {
+    if (event.key === "Enter" && showAskAI) {
+      const askAIButton = inputContainer.querySelector(
+        'input[type="submit"][value="Ask AI"]',
+      );
+      if (askAIButton) {
+        askAIButton.click();
+      }
+    }
+  });
+
   if (showAskAI) {
     appendAskAIButton();
   }
@@ -402,7 +413,7 @@ function addHighlighting() {
 
     sentences.forEach((sentence) => {
       let span = document.createElement("span");
-      span.textContent = sentence ;
+      span.textContent = sentence;
 
       span.addEventListener("mouseenter", () => {
         span.classList.add("highlighted");
