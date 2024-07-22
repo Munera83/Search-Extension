@@ -395,47 +395,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 function addHighlighting() {
-  function splitTextNode(node) {
-    let text = node.textContent;
-    let sentences = text.split(/(?<=[.,;])/);
-
-    let chunks = [];
-    let currentChunk = [];
-
-    sentences.forEach((sentence) => {
-      let words = sentence.trim().split(/\s+/);
-      words.forEach((word) => {
-        currentChunk.push(word);
-
-        if (currentChunk.length >= 3) {
-          chunks.push(currentChunk.join(" "));
-          currentChunk = [];
-        }
-      });
-
-      if (currentChunk.length > 0) {
-        if (chunks.length > 0) {
-          let lastChunk = chunks.pop();
-          lastChunk += " " + currentChunk[0];
-          chunks.push(lastChunk);
-          currentChunk = currentChunk.slice(1);
-        }
-        chunks.push(currentChunk.join(" "));
-        currentChunk = [];
-      }
-    });
-
-    return chunks;
-  }
-
   function wrapTextNode(textNode) {
-    let chunks = splitTextNode(textNode);
+    let sentences = textNode.textContent.split(/(?<=[.,;?!])/);
 
     let fragment = document.createDocumentFragment();
 
-    chunks.forEach((chunk) => {
+    sentences.forEach((sentence) => {
       let span = document.createElement("span");
-      span.textContent = chunk + " ";
+      span.textContent = sentence ;
 
       span.addEventListener("mouseenter", () => {
         span.classList.add("highlighted");
