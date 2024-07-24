@@ -1,83 +1,76 @@
 .custom-modal {
   position: fixed;
-  top: 10px;
-  right: 10px;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
   background-color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #ccc;
+}
+
+.custom-modal .input-container {
+  display: flex;
+  align-items: center;
   padding: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  width: 400px;
-  cursor: move;
+  border-bottom: 1px solid #ddd;
 }
 
-.input-container {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-}
-
-.input-container input[type="text"] {
+.custom-modal .input-container input[type="text"] {
   flex-grow: 1;
-  height: 40px;
-  padding: 3px 7px;
-  font-size: 17px;
-  background-color: #fff;
-  border: 1px solid #000;
-  border-radius: 5px;
-}
-
-.input-container input[type="submit"] {
-  background-color: #000;
-  color: #fff;
-  height: 40px;
-  border-radius: 5px;
-  padding: 0 10px;
-  font-size: 17px;
-  flex-shrink: 0;
-}
-
-.ai-response-container {
-  max-height: 300px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  margin-top: 20px;
   padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  display: none;
-}
-
-.custom-search-overlay {
-  position: fixed;
-  bottom: 10px;
-  right: 10px;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 10px;
-  border-radius: 5px;
-  z-index: 9999;
-  display: flex;
-  flex-direction: row;
-  gap: 10px;
-}
-
-.overlay-button {
-  margin: 5px;
-  background-color: transparent;
   border: none;
+  outline: none;
+  font-size: 14px;
+  border-radius: 4px;
+  margin-right: 10px;
+}
+
+.custom-modal .input-container input[type="submit"] {
+  padding: 10px;
+  background-color: black;
   color: white;
-  font-size: 20px;
+  border: none;
+  outline: none;
+  border-radius: 4px;
   cursor: pointer;
 }
 
-.overlay-button:focus {
+.overlay-button {
+  border: none;
   outline: none;
+  background-color: transparent; /* Ensure the background is transparent */
+  cursor: pointer; /* Add cursor pointer to indicate clickability */
+  padding: 0; /* Remove default padding */
+  margin: 0; /* Remove default margin */
+}
+.overlay-button svg {
+  display: block;
+  fill: inherit; /* Inherit color from parent */
+  stroke: none; /* Remove stroke to avoid black lines */
 }
 
-.custom-search-overlay button:hover {
-  opacity: 0.7;
+.custom-modal .button-container {
+  display: flex;
+  gap: 5px;
+}
+
+.custom-modal .button-container div {
+  cursor: pointer;
+}
+
+.custom-modal .button-container svg {
+  width: 12px;
+  height: 12px;
+}
+
+.custom-modal .ai-response-container {
+  padding: 10px;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .highlighted,

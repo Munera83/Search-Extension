@@ -97,8 +97,8 @@ function customSearchFunction(searchTerm) {
   searchResults = Array.from(document.querySelectorAll("mark"));
   if (searchResults.length > 0) {
     currentIndex = 0;
+    createCustomModal(false, searchTerm);
     scrollToResult(currentIndex);
-    showOverlay();
   } else {
     console.log("No results found.");
     createCustomModal(true, searchTerm);
@@ -151,7 +151,7 @@ function highlightText(searchTerm) {
         span.innerHTML = `${beforeText}<mark>${matchText}</mark>${afterText}`;
 
         const parentNode = parentNodes.get(textNode);
-        if (parentNode) {
+        if (parentNode && parentNode.contains(textNode)) {
           parentNode.replaceChild(span, textNode);
         }
 
@@ -202,7 +202,6 @@ function removeHighlights() {
   });
   searchResults = [];
   currentIndex = -1;
-  hideOverlay();
 }
 
 function createCustomModal(showAskAI = false, searchTerm = "") {
@@ -231,11 +230,11 @@ function createCustomModal(showAskAI = false, searchTerm = "") {
 
   const input = document.createElement("input");
   input.type = "text";
-  input.placeholder = "Enter search term";
+  input.placeholder = "Find, ask...";
   input.value = searchTerm;
   input.addEventListener("input", function () {
     const searchTerm = input.value;
-    if (searchTerm) {
+    if (searchTerm.length >= 1) {
       customSearchFunction(searchTerm);
     } else if (!searchTerm && showAskAI) {
       removeAskAIButton();
@@ -243,6 +242,52 @@ function createCustomModal(showAskAI = false, searchTerm = "") {
       removeHighlights();
     }
   });
+
+  inputContainer.appendChild(input);
+
+  const arrowUp = document.createElement("button");
+  arrowUp.classList.add("overlay-button");
+  arrowUp.textContent = "↑";
+  arrowUp.addEventListener("click", function () {
+    if (currentIndex > 0) {
+      scrollToResult(currentIndex - 1);
+    }
+  });
+
+  const arrowDown = document.createElement("button");
+  arrowDown.classList.add("overlay-button");
+  arrowDown.textContent = "↓";
+  arrowDown.addEventListener("click", function () {
+    if (currentIndex < searchResults.length - 1) {
+      scrollToResult(currentIndex + 1);
+    }
+  });
+
+  const closeButton = document.createElement("button");
+  closeButton.classList.add("overlay-button");
+  closeButton.textContent = "✕";
+  closeButton.addEventListener("click", function () {
+    document.body.removeChild(modal);
+  });
+
+  const buttonContainer = document.createElement("div");
+  buttonContainer.classList.add("button-container");
+  buttonContainer.appendChild(arrowUp);
+  buttonContainer.appendChild(arrowDown);
+  buttonContainer.appendChild(closeButton);
+
+  inputContainer.appendChild(buttonContainer);
+  modal.appendChild(inputContainer);
+
+  const responseContainer = document.createElement("div");
+  responseContainer.id = "ai-response-container";
+  responseContainer.classList.add("ai-response-container");
+  responseContainer.classList.add("scrollable");
+  modal.appendChild(responseContainer);
+
+  document.body.appendChild(modal);
+
+  input.focus();
 
   input.addEventListener("keypress", function (event) {
     if (event.key === "Enter" && showAskAI) {
@@ -258,9 +303,14 @@ function createCustomModal(showAskAI = false, searchTerm = "") {
   if (showAskAI) {
     appendAskAIButton();
   }
-  inputContainer.appendChild(input);
 
   function appendAskAIButton() {
+    if (!arrowUp || !arrowDown) {
+      console.error("Arrow buttons not found.");
+    } else {
+      buttonContainer.removeChild(arrowUp);
+      buttonContainer.removeChild(arrowDown);
+    }
     const askAIButton = document.createElement("input");
     askAIButton.type = "submit";
     askAIButton.value = "Ask AI";
@@ -270,74 +320,16 @@ function createCustomModal(showAskAI = false, searchTerm = "") {
         askAIFromContent(question);
       }
     };
-    inputContainer.appendChild(askAIButton);
+    buttonContainer.insertBefore(askAIButton, closeButton);
   }
 
   function removeAskAIButton() {
-    const askAIButton = inputContainer.querySelector(
+    const askAIButton = buttonContainer.querySelector(
       'input[type="submit"][value="Ask AI"]',
     );
     if (askAIButton) {
-      inputContainer.removeChild(askAIButton);
+      buttonContainer.removeChild(askAIButton);
     }
-  }
-  modal.appendChild(inputContainer);
-
-  const responseContainer = document.createElement("div");
-  responseContainer.id = "ai-response-container";
-  responseContainer.classList.add("ai-response-container");
-  responseContainer.classList.add("scrollable");
-  modal.appendChild(responseContainer);
-
-  document.body.appendChild(modal);
-
-  input.focus();
-}
-
-function showOverlay() {
-  let overlay = document.getElementById("custom-search-overlay");
-  if (!overlay) {
-    overlay = document.createElement("div");
-    overlay.id = "custom-search-overlay";
-    overlay.classList.add("custom-search-overlay");
-    const upArrow = document.createElement("button");
-    upArrow.textContent = "↑";
-    upArrow.classList.add("overlay-button");
-    upArrow.onclick = function () {
-      if (currentIndex > 0) {
-        scrollToResult(currentIndex - 1);
-      }
-    };
-
-    const downArrow = document.createElement("button");
-    downArrow.textContent = "↓";
-    downArrow.classList.add("overlay-button");
-    downArrow.onclick = function () {
-      if (currentIndex < searchResults.length - 1) {
-        scrollToResult(currentIndex + 1);
-      }
-    };
-
-    const closeButton = document.createElement("button");
-    closeButton.textContent = "X";
-    closeButton.classList.add("overlay-button");
-    closeButton.onclick = function () {
-      removeHighlights();
-    };
-
-    overlay.appendChild(upArrow);
-    overlay.appendChild(downArrow);
-    overlay.appendChild(closeButton);
-    document.body.appendChild(overlay);
-  } else {
-    overlay.style.display = "flex";
-  }
-}
-
-function hideOverlay() {
-  const overlay = document.getElementById("custom-search-overlay");
-  if (overlay) {
-    overlay.style.display = "none";
   }
 }
 
